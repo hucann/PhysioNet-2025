@@ -1,0 +1,16 @@
+code15_input/
+code15_output/
+samitrop_input/
+samitrop_output/
+ptbxl_input/
+ptbxl_output/
+
+model/
+outputs/
+scores_*
+
+# Notes.md
+Agenda.md
+
+__pycache__
+.DS_Store
