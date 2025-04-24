@@ -7,38 +7,38 @@ conda activate physionet
 data_train
 data_test
 
-3. Run command by replacing 'data' with correct data folder name
-- Train model 
+3. Train model 
 ```bash 
-python train_model.py -d data -m model -v
+python train_model.py -d data_train -m model -v
 ```
-- Run model
+2. Run model
 ```bash
-python run_model.py -d data -m model -o outputs -v
+python run_model.py -d data_test -m model -o outputs -v
 ```
 - Evaluate model
 ```bash
-python evaluate_model.py -d data -o outputs -s scores.csv
+python evaluate_model.py -d data_test -o outputs -s scores.csv
 ```
 
 ---
 ### Dataset 
 CODE-15
 - 300,000 
-- Weak label: may not be validated (self reported) (6562/343425 = 1.91%)
+- Weak label: may not be validated (self reported) (positive rate = 6562/343425 = 1.91%)
 - 400 Hz; 7.3 s or 10.2 s
 
 SaMi-Trop
 - 1,631
-- Strong label: validated by serological tests -- all positive
+- Strong label: validated by serological tests -- all **positive**
 - 400 Hz; 7.3 s or 10.2 s
 
 PTB-XL
 - 21,799
-- Label: presumably Chagas negative
+- Strong label: all or almost all likely to be Chagas **negative** based on geography
 - 500 Hz; 10s
 
-`The prevalence rate of Chagas disease in each of the training, validation, and test sets approximately matches the prevalence rate of the countries in which Chagas disease is endemic.`
+To Note:
+- The prevalence rate of Chagas disease in each of the training, validation, and test sets approximately matches the prevalence rate of the countries in which Chagas disease is endemic.
 -  1%; 3% ~ 6% 
 
 ---
