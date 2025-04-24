@@ -13,6 +13,7 @@ import joblib
 import numpy as np
 import os
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from xgboost import XGBClassifier
 import sys
 
 from helper_code import *
@@ -42,7 +43,7 @@ def train_model(data_folder, model_folder, verbose):
     if verbose:
         print('Extracting features and labels from the data...')
 
-    features = np.zeros((num_records, 6), dtype=np.float64)
+    features = np.zeros((num_records, 28), dtype=np.float64)         # Adjust the size of the feature vector as needed.
     labels = np.zeros(num_records, dtype=bool)
 
     # Iterate over the records.
@@ -59,15 +60,18 @@ def train_model(data_folder, model_folder, verbose):
     if verbose:
         print('Training the model on the data...')
 
-    # This very simple model trains a random forest model with very simple features.
 
     # Define the parameters for the random forest classifier and regressor.
     n_estimators = 12  # Number of trees in the forest.
     max_leaf_nodes = 34  # Maximum number of leaf nodes in each tree.
     random_state = 56  # Random state; set for reproducibility.
 
-    # Fit the model.
-    model = RandomForestClassifier(
+    # Random forest model
+    # model = RandomForestClassifier(
+    #     n_estimators=n_estimators, max_leaf_nodes=max_leaf_nodes, random_state=random_state).fit(features, labels)
+
+    # XGBoost model
+    model = XGBClassifier(
         n_estimators=n_estimators, max_leaf_nodes=max_leaf_nodes, random_state=random_state).fit(features, labels)
 
     # Create a folder for the model if it does not already exist.
@@ -127,17 +131,33 @@ def extract_features(record):
 
     # TO-DO: Update to compute per-lead features. Check lead order and update and use functions for reordering leads as needed.
 
-    num_finite_samples = np.size(np.isfinite(signal))
-    if num_finite_samples > 0:
-        signal_mean = np.nanmean(signal)
-    else:
-        signal_mean = 0.0
-    if num_finite_samples > 1:
-        signal_std = np.nanstd(signal)
-    else:
-        signal_std = 0.0
+    # num_finite_samples = np.size(np.isfinite(signal))
+    # if num_finite_samples > 0:
+    #     signal_mean = np.nanmean(signal)
+    # else:
+    #     signal_mean = 0.0
+    # if num_finite_samples > 1:
+    #     signal_std = np.nanstd(signal)
+    # else:
+    #     signal_std = 0.0
 
-    features = np.concatenate(([age], one_hot_encoding_sex, [signal_mean, signal_std]))
+    # features = np.concatenate(([age], one_hot_encoding_sex, [signal_mean, signal_std]))
+
+    n_leads = signal.shape[1]
+    lead_means = []
+    lead_stds = []
+
+    for i in range(n_leads):
+        lead = signal[:, i]
+        finite_lead = lead[np.isfinite(lead)]
+        if finite_lead.size > 0:
+            lead_means.append(np.nanmean(finite_lead))
+            lead_stds.append(np.nanstd(finite_lead))
+        else:
+            lead_means.append(0.0)
+            lead_stds.append(0.0)
+
+    features = np.concatenate(([age], one_hot_encoding_sex, lead_means, lead_stds))
 
     return np.asarray(features, dtype=np.float32)
 
