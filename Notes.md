@@ -28,12 +28,12 @@ CODE-15
 - 400 Hz; 7.3 s or 10.2 s
 
 SaMi-Trop
-- 1,631
+- 1,631 records (one per patient)
 - Strong label: validated by serological tests -- all **positive**
 - 400 Hz; 7.3 s or 10.2 s
 
 PTB-XL
-- 21,799
+- 21,799 records (for 18869 patients)
 - Strong label: all or almost all likely to be Chagas **negative** based on geography
 - 500 Hz; 10s
 
