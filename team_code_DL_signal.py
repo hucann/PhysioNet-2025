@@ -19,8 +19,9 @@ from helper_code import *
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 ################################################################################
 #
@@ -33,58 +34,109 @@ from tqdm import tqdm
 
 # Train your model.
 def train_model(data_folder, model_folder, verbose):
-    # Find the data files.
+
+    # Load records from the data folder
+    train_records = collect_records(os.path.join(data_folder, "train"), ["ptbxl_output", "samitrop_output"])
+    val_records   = collect_records(os.path.join(data_folder, "val"),   ["ptbxl_output", "samitrop_output"])
+
+    train_dataset = ECGDataset(train_records, os.path.join(data_folder, "train"))
+    val_dataset = ECGDataset(val_records, os.path.join(data_folder, "val"))
+
+    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=16)
+
+    # Select device: MPS for Mac GPU, else CPU
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     if verbose:
-        print('Finding the Challenge data...')
+        print(f"Using device: {device}")
 
-    records = find_records(data_folder)
-    num_records = len(records)
-
-    if num_records == 0:
-        raise FileNotFoundError('No data were provided.')
-
-    if verbose:
-        print(f'Found {num_records} records.')
-        print('Preparing dataset...')
-
-    dataset = ECGDataset(records, data_folder)
-    dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
-
-    # Train the models.
-    if verbose:
-        print('Training the model on the data...')
-
-    model = ECG1DCNN(in_channels=12)
+    model = ECG1DCNN().to(device)
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    model.train()
+    train_losses, val_losses = [], []
+    train_accuracies, val_accuracies = [], []
+
     num_epochs = 10
     for epoch in range(num_epochs):
-        running_loss = 0.0
-        loop = tqdm(dataloader, desc=f"Epoch {epoch + 1}/{num_epochs}", leave=False)
+        model.train()
+        epoch_loss = 0.0
+        correct = 0
+        total = 0
+
+        loop = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}", leave=False)
         for signals, labels in loop:
+            signals = signals.to(device)
+            labels = labels.to(device)
+
             outputs = model(signals)
             loss = criterion(outputs.squeeze(), labels)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-            running_loss += loss.item()
+            epoch_loss += loss.item()
+            predictions = (outputs.squeeze() > 0.5).float()
+            correct += (predictions == labels).sum().item()
+            total += labels.size(0)
+
             loop.set_postfix(loss=loss.item())
 
+        train_loss = epoch_loss / len(train_loader)
+        train_acc = correct / total
+        train_losses.append(train_loss)
+        train_accuracies.append(train_acc)
+
+        # Validation
+        model.eval()
+        val_loss = 0.0
+        val_correct = 0
+        val_total = 0
+        with torch.no_grad():
+            for signals, labels in val_loader:
+                signals = signals.to(device)
+                labels = labels.to(device)
+
+                outputs = model(signals)
+                loss = criterion(outputs.squeeze(), labels)
+                val_loss += loss.item()
+                predictions = (outputs.squeeze() > 0.5).float()
+                val_correct += (predictions == labels).sum().item()
+                val_total += labels.size(0)
+
+        val_losses.append(val_loss / len(val_loader))
+        val_accuracies.append(val_correct / val_total)
+
         if verbose:
-            print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {running_loss:.4f}")
+            print(f"Epoch {epoch + 1}: Train Loss={train_loss:.4f}, Val Loss={val_losses[-1]:.4f}, Train Acc={train_acc:.4f}, Val Acc={val_accuracies[-1]:.4f}")
 
-    # Create a folder for the model if it does not already exist.
     os.makedirs(model_folder, exist_ok=True)
-
-    # Save the model.
     torch.save({'model_state_dict': model.state_dict()}, os.path.join(model_folder, 'cnn_model.pth'))
 
+    # Plot loss against epochs
+    plt.figure()
+    plt.plot(range(1, num_epochs + 1), train_losses, label="Train Loss")
+    plt.plot(range(1, num_epochs + 1), val_losses, label="Val Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.title("Loss over Epochs")
+    plt.savefig(os.path.join(model_folder, "loss_plot.png"))
+    plt.close()
+
+    # Plot accuracy against epochs
+    plt.figure()
+    plt.plot(range(1, num_epochs + 1), train_accuracies, label="Train Accuracy")
+    plt.plot(range(1, num_epochs + 1), val_accuracies, label="Val Accuracy")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.legend()
+    plt.title("Accuracy over Epochs")
+    plt.savefig(os.path.join(model_folder, "accuracy_plot.png"))
+    plt.close()
+
     if verbose:
-        print('Done.')
-        print()
+        print('Training complete, model and plots saved.')
 
 # Load your trained models. This function is *required*. You should edit this function to add your code, but do *not* change the
 # arguments of this function. If you do not train one of the models, then you can return None for the model.
@@ -136,24 +188,32 @@ class ECG1DCNN(nn.Module):
     
 # Create a custom PyTorch dataset
 class ECGDataset(Dataset):
-    def __init__(self, records, data_folder):
-        self.records = records
+    def __init__(self, records_with_source, data_folder):
+        self.records_with_source = records_with_source  # list of (record_name, subfolder)
         self.data_folder = data_folder
-    
+
     def __len__(self):
-        return len(self.records)
-    
+        return len(self.records_with_source)
+
     def __getitem__(self, idx):
-        record_path = os.path.join(self.data_folder, self.records[idx])
+        record_name, subfolder = self.records_with_source[idx]
+        record_path = os.path.join(self.data_folder, subfolder, record_name)
+
         signal, _ = load_signals(record_path)
         label = load_label(record_path)
 
         # Normalize and pad to fixed length
-        signal = np.nan_to_num(signal)
-        signal = signal.T  # Convert to shape (channels, time)
-        signal = signal[:, :5000]  # Truncate or pad
+        signal = np.nan_to_num(signal).T
+        signal = signal[:, :5000]
         if signal.shape[1] < 5000:
-            pad = 5000 - signal.shape[1]
-            signal = np.pad(signal, ((0, 0), (0, pad)), mode='constant')
-        
+            signal = np.pad(signal, ((0, 0), (0, 5000 - signal.shape[1])), mode='constant')
+
         return torch.tensor(signal, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
+    
+def collect_records(base_dir, subfolders):
+    all_records = []
+    for subfolder in subfolders:
+        full_path = os.path.join(base_dir, subfolder)
+        records = find_records(full_path)
+        all_records += [(record, subfolder) for record in records]
+    return all_records
