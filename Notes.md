@@ -4,7 +4,7 @@
 conda activate physionet
 ```
 2. Download & place data folder
-data_train
+data_train or data_train_val
 data_test
 
 3. Train model 
@@ -23,7 +23,9 @@ python evaluate_model.py -d data_test -o outputs -s scores.csv
 ---
 ### Dataset 
 CODE-15
-- 300,000 
+- 345,779 exams from 233,770 patients 
+  - Obtained through stratified sampling from the CODE dataset (15% of the patients). 
+  - Each `exam_part` file contains around 20,000 ECG records. 
 - Weak label: may not be validated (self reported) (positive rate = 6562/343425 = 1.91%)
 - 400 Hz; 7.3 s or 10.2 s
 

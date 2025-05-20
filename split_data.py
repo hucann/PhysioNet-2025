@@ -1,7 +1,7 @@
 # This script splits the PTB-XL and SaMi-Trop datasets into training, validation, and test sets. (80% train, 10% val, 10% test)
-# PTB-XL is split with stratified folds to prevent patient-level data leakage, while SaMi-Trop is split randomly.
+# PTB-XL is split with stratified folds to prevent patient-level data leakage, while SaMi-Trop is split randomly with fixed seed.
 
-# data_train_val/
+# data_train/
 # ├── train/
 # │   ├── ptbxl_output/
 # │   └── samitrop_output/
@@ -23,7 +23,7 @@ ptbxl_dir = os.path.join(base_dir, 'ptbxl_output')
 samitrop_dir = os.path.join(base_dir, 'samitrop_output')
 ptbxl_metadata_path = os.path.join(base_dir, 'ptbxl_database.csv')
 
-train_val_base = 'data_train_val'
+train_val_base = 'data_train'
 test_base = 'data_test'
 
 # === Create Directory Structure ===
