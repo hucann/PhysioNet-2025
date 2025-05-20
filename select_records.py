@@ -43,15 +43,18 @@ def select_records(data_folder, output_folder, save_path='selected_records.txt',
             try:
                 with open(output_file, 'r') as f:
                     lines = f.readlines()
-                prob_line = next((l for l in lines if l.startswith('probability_output')), None)
-                prob = float(prob_line.split('=')[-1].strip()) if prob_line else None
+                prob_line = next((l for l in lines if 'Chagas probability:' in l), None)
+                prob = float(prob_line.split(':')[-1].strip()) if prob_line else None
             except:
                 if verbose:
                     print(f"  ⚠️  Could not parse output for {record}")
                 continue
 
+            # # Apply selection criteria
+            # if label == 1 or (prob is not None and (prob < 0.01 or prob > 0.99)):
+            #     selected.append(record)
             # Apply selection criteria
-            if label == 1 or (prob is not None and (prob < 0.01 or prob > 0.99)):
+            if prob is not None and (prob < 0.01 or prob > 0.99):
                 selected.append(record)
 
     # Save to text file

@@ -20,12 +20,30 @@ python run_model.py -d data_test -m model -o outputs -v
 python evaluate_model.py -d data_test -o outputs -s scores.csv
 ```
 
+### Dataset splitting
+- Split two datasets with optimised strat_fold: `split_data.py`
+- Cross-validate ML on two datasets with strat_fold: run `crossval_driver.py`
+
+- Select records from code-15: `select_records.py`
+- Split train test on code-15: `split_code15_records.py`
+
+
+data/
+├── data_train/
+│   ├── code15_output/
+│   ├── ptbxl_output/
+│   └── samitrop_output/
+├── data_test/
+│   ├── code15_output/
+│   ├── ptbxl_output/
+│   └── samitrop_output/
+
 ---
 ### Dataset 
 CODE-15
 - 345,779 exams from 233,770 patients 
   - Obtained through stratified sampling from the CODE dataset (15% of the patients). 
-  - Each `exam_part` file contains around 20,000 ECG records. 
+  - Each `exam_part` file contains around 20,000 ECG records. Prevalence rate ~ 2%
 - Weak label: may not be validated (self reported) (positive rate = 6562/343425 = 1.91%)
 - 400 Hz; 7.3 s or 10.2 s
 
