@@ -8,7 +8,7 @@ ptbxl_output/
 
 model/
 outputs/
-scores_*
+score/
 
 # Notes.md
 Agenda.md

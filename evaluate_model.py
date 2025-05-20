@@ -91,3 +91,6 @@ def run(args):
 
 if __name__ == '__main__':
     run(get_parser().parse_args(sys.argv[1:]))
+
+# Add this so the function can be imported
+__all__ = ['evaluate_model']
