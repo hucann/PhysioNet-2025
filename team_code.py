@@ -12,7 +12,6 @@
 import joblib
 import numpy as np
 import os
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from xgboost import XGBClassifier
 import sys
 
@@ -66,10 +65,7 @@ def train_model(data_folder, model_folder, verbose):
     max_leaf_nodes = 34  # Maximum number of leaf nodes in each tree.
     random_state = 56  # Random state; set for reproducibility.
 
-    # Random forest model
-    # model = RandomForestClassifier(
-    #     n_estimators=n_estimators, max_leaf_nodes=max_leaf_nodes, random_state=random_state).fit(features, labels)
-
+    
     # XGBoost model
     model = XGBClassifier(
         n_estimators=n_estimators, max_leaf_nodes=max_leaf_nodes, random_state=random_state).fit(features, labels)
@@ -128,20 +124,6 @@ def extract_features(record):
         one_hot_encoding_sex[2] = 1
 
     signal, fields = load_signals(record)
-
-    # TO-DO: Update to compute per-lead features. Check lead order and update and use functions for reordering leads as needed.
-
-    # num_finite_samples = np.size(np.isfinite(signal))
-    # if num_finite_samples > 0:
-    #     signal_mean = np.nanmean(signal)
-    # else:
-    #     signal_mean = 0.0
-    # if num_finite_samples > 1:
-    #     signal_std = np.nanstd(signal)
-    # else:
-    #     signal_std = 0.0
-
-    # features = np.concatenate(([age], one_hot_encoding_sex, [signal_mean, signal_std]))
 
     n_leads = signal.shape[1]
     lead_means = []
