@@ -1,6 +1,8 @@
 # This script splits the PTB-XL and SaMi-Trop datasets into training, validation, and test sets. (80% train, 10% val, 10% test)
 # PTB-XL is split with stratified folds to prevent patient-level data leakage, while SaMi-Trop is split randomly with fixed seed.
 
+
+# Ratio: 80% train, 10% val, 10% test
 # data_train/
 # ├── train/
 # │   ├── ptbxl_output/
@@ -9,13 +11,11 @@
 #     ├── ptbxl_output/
 #     └── samitrop_output/
 ############################ OR
+# Ratio: 80% train, 20% test
 # data_train/
 # ├── ptbxl_output/
 # └── samitrop_output/
-############################
-# data_test/
-# ├── ptbxl_output/
-# └── samitrop_output/
+
 
 import os
 import pandas as pd
@@ -23,16 +23,16 @@ import shutil
 from sklearn.model_selection import train_test_split
 
 # === CONFIGURATION ===
-split_train_val = False  # ✅ Set True for separate train/val, False to merge
+split_train_val = False      # ✅ Set True for separate train/val, False to merge
 
 # === Paths ===
 base_dir = 'data'
 ptbxl_dir = os.path.join(base_dir, 'ptbxl_output')
 samitrop_dir = os.path.join(base_dir, 'samitrop_output')
-ptbxl_metadata_path = os.path.join(base_dir, 'ptbxl_database.csv')
+ptbxl_metadata_path = os.path.join(base_dir, 'ptbxl_meta.csv')
 
-train_base = os.path.join(base_dir, 'data_train')
-test_base = os.path.join(base_dir, 'data_test')
+train_base = 'data_train'
+test_base = 'data_test'
 
 # Create folders
 if split_train_val:
@@ -72,11 +72,11 @@ def copy_ptbxl_files(df, output_dir):
 if split_train_val:
     copy_ptbxl_files(df_train, os.path.join(train_base, 'train'))
     copy_ptbxl_files(df_val, os.path.join(train_base, 'val'))
+    copy_ptbxl_files(df_test, test_base)
 else:
-    combined_df = pd.concat([df_train, df_val])
-    copy_ptbxl_files(combined_df, train_base)
-
-copy_ptbxl_files(df_test, test_base)
+    copy_ptbxl_files(df_train, train_base)
+    combined_df = pd.concat([df_val, df_test])
+    copy_ptbxl_files(combined_df, test_base)
 
 # === SaMi-Trop Split ===
 hea_files = [f for f in os.listdir(samitrop_dir) if f.endswith('.hea')]
@@ -100,49 +100,16 @@ def copy_samitrop_files(ids, output_dir):
 if split_train_val:
     copy_samitrop_files(train_ids, os.path.join(train_base, 'train'))
     copy_samitrop_files(val_ids, os.path.join(train_base, 'val'))
+    copy_samitrop_files(test_ids, test_base)
 else:
-    combined_ids = train_ids + val_ids
-    copy_samitrop_files(combined_ids, train_base)
+    copy_samitrop_files(train_ids, train_base)
+    combined_ids = val_ids + test_ids
+    copy_samitrop_files(combined_ids, test_base)
 
-copy_samitrop_files(test_ids, test_base)
 
 print("\n✅ Dataset split complete.")
 print(f"Saved in: {train_base}/ and {test_base}/")
 
-
-
-# =======================================================================
-# import os
-# import random
-# import shutil
-
-# # Define paths
-# train_dir = 'data_train/samitrop_output'
-# test_dir = 'data_test/samitrop_output'
-
-# # Create destination directory if not exists
-# os.makedirs(test_dir, exist_ok=True)
-
-# # List all .dat files (we assume .hea exists with same name)
-# dat_files = [f for f in os.listdir(train_dir) if f.endswith('.dat')]
-# record_ids = [os.path.splitext(f)[0] for f in dat_files]
-
-# # Shuffle and select 20%
-# random.shuffle(record_ids)
-# n_move = int(len(record_ids) * 0.2)
-# to_move = record_ids[:n_move]
-
-# # Move each .dat and corresponding .hea file
-# for rid in to_move:
-#     for ext in ['.dat', '.hea']:
-#         src = os.path.join(train_dir, rid + ext)
-#         dst = os.path.join(test_dir, rid + ext)
-#         if os.path.exists(src):
-#             shutil.move(src, dst)
-#         else:
-#             print(f"Warning: {src} not found")
-
-# print(f"Moved {n_move} record(s) to {test_dir}")
 
 
 # =======================================================================
